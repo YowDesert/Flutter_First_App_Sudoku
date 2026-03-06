@@ -5,19 +5,20 @@ import 'package:provider/provider.dart';
 
 import '../../controllers/game_controller.dart';
 import '../../models/app_enums.dart';
+import '../theme/game_theme.dart';
 
 class GameCircleIconButton extends StatefulWidget {
   const GameCircleIconButton({
     super.key,
     required this.icon,
     required this.onTap,
-    this.tint = const Color(0xFF2E6FD2),
+    this.tint,
     this.size = 42,
   });
 
   final IconData icon;
   final VoidCallback onTap;
-  final Color tint;
+  final Color? tint;
   final double size;
 
   @override
@@ -29,7 +30,9 @@ class _GameCircleIconButtonState extends State<GameCircleIconButton> {
 
   @override
   Widget build(BuildContext context) {
-    final shadowColor = widget.tint.withValues(alpha: 0.18);
+    final palette = GameTheme.ui(context);
+    final resolvedTint = widget.tint ?? palette.quickAccent;
+    final shadowColor = resolvedTint.withValues(alpha: 0.18);
     return AnimatedScale(
       duration: const Duration(milliseconds: 110),
       scale: _pressed ? 0.95 : 1,
@@ -46,7 +49,7 @@ class _GameCircleIconButtonState extends State<GameCircleIconButton> {
               end: Alignment.bottomRight,
               colors: [Color(0xFFFDFEFF), Color(0xFFEAF3FF)],
             ),
-            border: Border.all(color: const Color(0xB8FFFFFF)),
+            border: Border.all(color: palette.panelStroke),
             boxShadow: [
               BoxShadow(
                 color: shadowColor,
@@ -61,10 +64,10 @@ class _GameCircleIconButtonState extends State<GameCircleIconButton> {
             onTapDown: (_) => setState(() => _pressed = true),
             onTapUp: (_) => setState(() => _pressed = false),
             onTapCancel: () => setState(() => _pressed = false),
-            splashColor: widget.tint.withValues(alpha: 0.12),
+            splashColor: resolvedTint.withValues(alpha: 0.12),
             highlightColor: Colors.transparent,
-            child:
-                Icon(widget.icon, color: widget.tint, size: widget.size * 0.52),
+            child: Icon(widget.icon,
+                color: resolvedTint, size: widget.size * 0.52),
           ),
         ),
       ),
@@ -98,6 +101,7 @@ class StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return Container(
       padding: padding,
       decoration: BoxDecoration(
@@ -141,7 +145,7 @@ class StatChip extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: const Color(0xFF5F738B),
+                    color: palette.textMuted,
                     fontSize: labelFontSize,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.1,
@@ -208,6 +212,7 @@ class BottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<GameController>();
+    final palette = GameTheme.ui(context);
     final session = controller.session;
     if (session == null) {
       return const SizedBox.shrink();
@@ -228,14 +233,14 @@ class BottomActionBar extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               Colors.white.withValues(alpha: 0.86),
-              Colors.white.withValues(alpha: 0.68),
+              palette.quickAccent.withValues(alpha: 0.1),
             ],
           ),
           borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(color: const Color(0xB6FFFFFF)),
-          boxShadow: const [
+          border: Border.all(color: palette.panelStroke),
+          boxShadow: [
             BoxShadow(
-              color: Color(0x1A7AA4D8),
+              color: palette.quickAccent.withValues(alpha: 0.14),
               blurRadius: 22,
               offset: Offset(0, 9),
             ),
@@ -251,6 +256,8 @@ class BottomActionBar extends StatelessWidget {
                 label: 'Notes',
                 selected: session.inputMode == InputMode.notes,
                 enabled: true,
+                accentColor: palette.keypadAccent,
+                subtleTint: palette.quickAccent.withValues(alpha: 0.2),
                 iconSize: iconSize,
                 fontSize: fontSize,
                 onTap: controller.toggleInputMode,
@@ -263,6 +270,7 @@ class BottomActionBar extends StatelessWidget {
                 label: 'Undo',
                 selected: false,
                 enabled: controller.canUndo,
+                accentColor: palette.quickAccent,
                 iconSize: iconSize,
                 fontSize: fontSize,
                 onTap: controller.canUndo ? controller.undo : null,
@@ -275,8 +283,8 @@ class BottomActionBar extends StatelessWidget {
                 label: 'Hint',
                 selected: false,
                 enabled: controller.canUseHint,
-                accentColor: const Color(0xFFC19538),
-                subtleTint: const Color(0xFFFFF1CA),
+                accentColor: palette.hintAccent,
+                subtleTint: palette.hintAccent.withValues(alpha: 0.3),
                 iconSize: iconSize,
                 fontSize: fontSize,
                 onTap: controller.canUseHint ? controller.useHint : null,
@@ -289,7 +297,7 @@ class BottomActionBar extends StatelessWidget {
                 label: 'Check',
                 selected: false,
                 enabled: controller.settings.errorMode != ErrorMode.off,
-                accentColor: const Color(0xFF2B9D7E),
+                accentColor: palette.checkAccent,
                 iconSize: iconSize,
                 fontSize: fontSize,
                 onTap: () => controller.checkBoard(),
@@ -334,6 +342,9 @@ class _ActionPillState extends State<_ActionPill> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
+    final defaultSubtleTint =
+        widget.subtleTint ?? palette.quickAccent.withValues(alpha: 0.2);
     final background = !widget.enabled
         ? const LinearGradient(
             begin: Alignment.topLeft,
@@ -354,25 +365,22 @@ class _ActionPillState extends State<_ActionPill> {
                 end: Alignment.bottomRight,
                 colors: [
                   const Color(0xFFFFFFFF),
-                  widget.subtleTint?.withValues(alpha: 0.36) ??
-                      const Color(0xFFF1F5FA),
+                  defaultSubtleTint.withValues(alpha: 0.36),
                 ],
               );
     final foreground = !widget.enabled
         ? const Color(0xFF94A3B8)
         : widget.selected
             ? Colors.white
-            : const Color(0xFF2A466A);
+            : palette.textPrimary;
     final borderColor = !widget.enabled
         ? const Color(0xFFDBE3EC)
         : widget.selected
             ? widget.accentColor.withValues(alpha: 0.55)
-            : (widget.subtleTint?.withValues(alpha: 0.58) ??
-                const Color(0xFFE0E9F2));
+            : defaultSubtleTint.withValues(alpha: 0.58);
     final shadowColor = widget.selected
         ? widget.accentColor.withValues(alpha: 0.26)
-        : (widget.subtleTint?.withValues(alpha: 0.26) ??
-            const Color(0x146985A4));
+        : defaultSubtleTint.withValues(alpha: 0.26);
     final scale = _pressed && widget.enabled ? 0.97 : 1.0;
 
     return AnimatedOpacity(

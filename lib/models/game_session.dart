@@ -103,9 +103,8 @@ class GameSession {
       hintsUsed: hintsUsed ?? this.hintsUsed,
       challengeDateKey: challengeDateKey ?? this.challengeDateKey,
       inputMode: inputMode ?? this.inputMode,
-      selectedIndex: clearSelectedIndex
-          ? null
-          : (selectedIndex ?? this.selectedIndex),
+      selectedIndex:
+          clearSelectedIndex ? null : (selectedIndex ?? this.selectedIndex),
     );
   }
 
@@ -164,6 +163,10 @@ class GameResult {
     required this.kind,
     required this.challengeDateKey,
     required this.updatedStreak,
+    required this.baseCoins,
+    required this.streakBonusCoins,
+    required this.coinsEarned,
+    required this.totalCoins,
   });
 
   final int elapsedSeconds;
@@ -173,6 +176,10 @@ class GameResult {
   final GameKind kind;
   final String? challengeDateKey;
   final int updatedStreak;
+  final int baseCoins;
+  final int streakBonusCoins;
+  final int coinsEarned;
+  final int totalCoins;
 
   bool get isDaily => kind == GameKind.daily;
 }

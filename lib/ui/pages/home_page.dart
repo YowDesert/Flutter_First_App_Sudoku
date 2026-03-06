@@ -9,6 +9,7 @@ import '../../models/app_enums.dart';
 import '../../models/game_session.dart';
 import '../theme/game_theme.dart';
 import 'game_page.dart';
+import 'shop_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -67,10 +68,12 @@ class _HomePageState extends State<HomePage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _HomeTopHeader(
+                            coins: controller.coins,
                             onInfoTap: () => _showHint(
                               context,
                               'Daily reset at local midnight. Keep the streak alive.',
                             ),
+                            onShopTap: () => _openShop(context),
                           ),
                           const SizedBox(height: 20),
                           _DailyHeroCard(
@@ -136,6 +139,12 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  void _openShop(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ShopPage()),
+    );
+  }
+
   void _showHint(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -163,10 +172,14 @@ class _HomePageState extends State<HomePage>
 
 class _HomeTopHeader extends StatelessWidget {
   const _HomeTopHeader({
+    required this.coins,
     required this.onInfoTap,
+    required this.onShopTap,
   });
 
+  final int coins;
   final VoidCallback onInfoTap;
+  final VoidCallback onShopTap;
 
   @override
   Widget build(BuildContext context) {
@@ -187,11 +200,53 @@ class _HomeTopHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
+        _CoinBadge(coins: coins),
+        const SizedBox(width: 8),
+        _HeaderButton(
+          icon: Icons.storefront_rounded,
+          onTap: onShopTap,
+        ),
+        const SizedBox(width: 8),
         _HeaderButton(
           icon: Icons.info_outline_rounded,
           onTap: onInfoTap,
         ),
       ],
+    );
+  }
+}
+
+class _CoinBadge extends StatelessWidget {
+  const _CoinBadge({
+    required this.coins,
+  });
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.92)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.monetization_on_rounded,
+              size: 18, color: palette.quickAccent),
+          const SizedBox(width: 6),
+          Text(
+            '$coins',
+            style: GameTheme.chipText(context).copyWith(
+              color: palette.textMuted,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -215,6 +270,7 @@ class _DailyHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return AnimatedBuilder(
       animation: pulse,
       builder: (context, child) {
@@ -254,13 +310,13 @@ class _DailyHeroCard extends StatelessWidget {
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: GameTheme.dailyAccent.withValues(alpha: 0.14),
+                        color: palette.dailyAccent.withValues(alpha: 0.14),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
                         'TODAY',
                         style: GameTheme.chipText(context).copyWith(
-                          color: GameTheme.dailyAccent,
+                          color: palette.dailyAccent,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.45,
                         ),
@@ -270,8 +326,8 @@ class _DailyHeroCard extends StatelessWidget {
                     _StatusTag(
                       label: dailyDone ? 'Completed' : 'Ready',
                       color: dailyDone
-                          ? GameTheme.successAccent
-                          : GameTheme.quickAccent,
+                          ? palette.successAccent
+                          : palette.quickAccent,
                     ),
                   ],
                 ),
@@ -279,7 +335,7 @@ class _DailyHeroCard extends StatelessWidget {
                 Text(
                   'Daily Board',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: GameTheme.textPrimary,
+                        color: palette.textPrimary,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.6,
                       ),
@@ -339,6 +395,7 @@ class _QuickRunCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return _GlassPanel(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
       borderRadius: BorderRadius.circular(24),
@@ -351,12 +408,12 @@ class _QuickRunCard extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: GameTheme.quickAccent.withValues(alpha: 0.16),
+                  color: palette.quickAccent.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.bolt_rounded,
-                  color: GameTheme.quickAccent,
+                  color: palette.quickAccent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -404,7 +461,7 @@ class _QuickRunCard extends StatelessWidget {
             icon: Icons.play_arrow_rounded,
             hapticEnabled: hapticEnabled,
             onPressed: onStart,
-            gradient: GameTheme.secondaryButtonGradient,
+            gradient: palette.secondaryButtonGradient,
             expanded: true,
           ),
         ],
@@ -477,7 +534,7 @@ class _GameActionButton extends StatefulWidget {
     required this.hapticEnabled,
     required this.onPressed,
     required this.expanded,
-    this.gradient = GameTheme.primaryButtonGradient,
+    this.gradient,
   });
 
   final String label;
@@ -485,7 +542,7 @@ class _GameActionButton extends StatefulWidget {
   final bool hapticEnabled;
   final VoidCallback onPressed;
   final bool expanded;
-  final Gradient gradient;
+  final Gradient? gradient;
 
   @override
   State<_GameActionButton> createState() => _GameActionButtonState();
@@ -544,6 +601,7 @@ class _GameActionButtonState extends State<_GameActionButton>
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     final button = ScaleTransition(
       scale: _scale,
       child: Material(
@@ -551,9 +609,9 @@ class _GameActionButtonState extends State<_GameActionButton>
         child: Ink(
           height: 52,
           decoration: BoxDecoration(
-            gradient: widget.gradient,
+            gradient: widget.gradient ?? palette.primaryButtonGradient,
             borderRadius: BorderRadius.circular(999),
-            boxShadow: GameTheme.buttonShadow,
+            boxShadow: palette.buttonShadow,
           ),
           child: InkWell(
             onTap: _handleTap,
@@ -567,12 +625,12 @@ class _GameActionButtonState extends State<_GameActionButton>
                     Text(
                       widget.label,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: GameTheme.buttonText,
+                            color: palette.buttonText,
                             fontWeight: FontWeight.w800,
                           ),
                     ),
                     const SizedBox(width: 8),
-                    Icon(widget.icon, color: GameTheme.buttonText),
+                    Icon(widget.icon, color: palette.buttonText),
                   ],
                 ),
               ),
@@ -605,6 +663,7 @@ class _GlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return ClipRRect(
       borderRadius: borderRadius,
       child: BackdropFilter(
@@ -618,8 +677,8 @@ class _GlassPanel extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: colors,
             ),
-            border: Border.all(color: GameTheme.panelStroke),
-            boxShadow: GameTheme.panelShadow,
+            border: Border.all(color: palette.panelStroke),
+            boxShadow: palette.panelShadow,
           ),
           child: child,
         ),
@@ -641,6 +700,7 @@ class _MetricBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -650,12 +710,12 @@ class _MetricBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: GameTheme.textMuted),
+          Icon(icon, size: 15, color: palette.textMuted),
           const SizedBox(width: 6),
           Text(
             '$label  $value',
             style: GameTheme.chipText(context).copyWith(
-              color: GameTheme.textMuted,
+              color: palette.textMuted,
               fontSize: 12,
             ),
           ),
@@ -712,9 +772,10 @@ class _DifficultyChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedColor = GameTheme.quickAccent.withValues(alpha: 0.16);
+    final palette = GameTheme.ui(context);
+    final selectedColor = palette.quickAccent.withValues(alpha: 0.16);
     final borderColor = selected
-        ? GameTheme.quickAccent.withValues(alpha: 0.75)
+        ? palette.quickAccent.withValues(alpha: 0.75)
         : const Color(0x80FFFFFF);
 
     return Material(
@@ -738,14 +799,14 @@ class _DifficultyChip extends StatelessWidget {
                   Icon(
                     icon,
                     size: 14,
-                    color: enabled ? GameTheme.textMuted : GameTheme.textSubtle,
+                    color: enabled ? palette.textMuted : palette.textSubtle,
                   ),
                   const SizedBox(width: 4),
                 ],
                 Text(
                   label,
                   style: GameTheme.chipText(context).copyWith(
-                    color: enabled ? GameTheme.textMuted : GameTheme.textSubtle,
+                    color: enabled ? palette.textMuted : palette.textSubtle,
                     fontSize: 12,
                   ),
                 ),
@@ -769,6 +830,7 @@ class _InfoPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -778,7 +840,7 @@ class _InfoPill extends StatelessWidget {
       child: Text(
         '$label  $value',
         style: GameTheme.chipText(context).copyWith(
-          color: GameTheme.textMuted,
+          color: palette.textMuted,
           fontSize: 12,
         ),
       ),
@@ -797,6 +859,7 @@ class _HeaderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return Material(
       color: Colors.transparent,
       child: Ink(
@@ -812,7 +875,7 @@ class _HeaderButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           child: Icon(
             icon,
-            color: GameTheme.textMuted,
+            color: palette.textMuted,
           ),
         ),
       ),
@@ -854,27 +917,31 @@ class _GameMenuBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
+    final accentA = palette.dailyAccent.withValues(alpha: 0.25);
+    final accentB = palette.quickAccent.withValues(alpha: 0.22);
+    final accentC = palette.successAccent.withValues(alpha: 0.2);
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           stops: [0.0, 0.58, 1.0],
           colors: [
-            GameTheme.backgroundTop,
-            GameTheme.backgroundMid,
-            GameTheme.backgroundBottom,
+            palette.homeBackgroundTop,
+            palette.homeBackgroundMid,
+            palette.homeBackgroundBottom,
           ],
         ),
       ),
-      child: const Stack(
+      child: Stack(
         children: [
           Positioned(
             top: -84,
             left: -46,
             child: _BackdropOrb(
               size: 246,
-              color: Color(0x4289F4D5),
+              color: accentA,
             ),
           ),
           Positioned(
@@ -882,7 +949,7 @@ class _GameMenuBackground extends StatelessWidget {
             right: -78,
             child: _BackdropOrb(
               size: 270,
-              color: Color(0x359ACFFF),
+              color: accentB,
             ),
           ),
           Positioned(
@@ -890,7 +957,7 @@ class _GameMenuBackground extends StatelessWidget {
             left: 24,
             child: _BackdropOrb(
               size: 286,
-              color: Color(0x37FFE0AE),
+              color: accentC,
             ),
           ),
           Positioned(
@@ -898,7 +965,7 @@ class _GameMenuBackground extends StatelessWidget {
             right: 38,
             child: _BackdropOrb(
               size: 184,
-              color: Color(0x34A8FFD9),
+              color: accentA,
             ),
           ),
         ],

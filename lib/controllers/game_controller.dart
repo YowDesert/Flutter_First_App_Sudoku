@@ -9,7 +9,35 @@ import '../models/app_enums.dart';
 import '../models/daily_progress.dart';
 import '../models/game_session.dart';
 import '../models/game_settings.dart';
+import '../models/player_inventory.dart';
+import '../models/skin_catalog.dart';
 import '../models/sudoku_puzzle.dart';
+
+enum ShopActionStatus {
+  purchased,
+  equipped,
+  alreadyEquipped,
+  insufficientCoins,
+  notFound,
+}
+
+class ShopActionResult {
+  const ShopActionResult({
+    required this.status,
+    required this.message,
+    this.price = 0,
+  });
+
+  final ShopActionStatus status;
+  final String message;
+  final int price;
+
+  bool get isSuccess {
+    return status == ShopActionStatus.purchased ||
+        status == ShopActionStatus.equipped ||
+        status == ShopActionStatus.alreadyEquipped;
+  }
+}
 
 class GameController extends ChangeNotifier {
   GameController(this._prefs) {
@@ -17,15 +45,28 @@ class GameController extends ChangeNotifier {
   }
 
   static const int? _hintLimit = null;
+  static const int _startingCoins = 120;
+  static const int _dailyBaseCoins = 52;
+  static const int _quickEasyCoins = 26;
+  static const int _quickMediumCoins = 34;
+  static const int _streakBonusPerStep = 2;
+  static const int _streakBonusCap = 20;
+
   static const _settingsKey = 'settings_v2';
   static const _dailyProgressKey = 'daily_progress_v2';
   static const _activeSessionKey = 'active_session_v2';
+  static const _inventoryKey = 'inventory_v1';
 
   final SharedPreferences _prefs;
   final PuzzleRepository _repository = PuzzleRepository();
 
   GameSettings _settings = const GameSettings();
   DailyProgress _dailyProgress = DailyProgress();
+  PlayerInventory _inventory = PlayerInventory.initial(
+    defaultThemeId: SkinCatalog.defaultThemeId,
+    defaultBoardSkinId: SkinCatalog.defaultBoardSkinId,
+    startingCoins: _startingCoins,
+  );
   GameSession? _session;
   GameResult? _lastResult;
   Timer? _timer;
@@ -39,6 +80,19 @@ class GameController extends ChangeNotifier {
 
   GameSettings get settings => _settings;
   DailyProgress get dailyProgress => _dailyProgress;
+  int get coins => _inventory.coins;
+  Set<String> get ownedThemes =>
+      Set<String>.unmodifiable(_inventory.ownedThemes);
+  String get equippedThemeId => _inventory.equippedThemeId;
+  ThemeSkinDefinition get equippedTheme =>
+      SkinCatalog.themeById(_inventory.equippedThemeId);
+  List<ThemeSkinDefinition> get themeCatalog => SkinCatalog.themes;
+  Set<String> get ownedBoardSkins =>
+      Set<String>.unmodifiable(_inventory.ownedBoardSkins);
+  String get equippedBoardSkinId => _inventory.equippedBoardSkinId;
+  BoardSkinDefinition get equippedBoardSkin =>
+      SkinCatalog.boardSkinById(_inventory.equippedBoardSkinId);
+  List<BoardSkinDefinition> get boardSkinCatalog => SkinCatalog.boardSkins;
   GameSession? get session => _session;
   GameResult? get lastResult => _lastResult;
   Set<int> get visibleErrorIndexes => _visibleErrorIndexes;
@@ -71,6 +125,117 @@ class GameController extends ChangeNotifier {
       return false;
     }
     return _findHintTargetIndex(current) != null;
+  }
+
+  bool ownsTheme(String themeId) => _inventory.ownedThemes.contains(themeId);
+
+  bool ownsBoardSkin(String boardSkinId) =>
+      _inventory.ownedBoardSkins.contains(boardSkinId);
+
+  bool isThemeEquipped(String themeId) => _inventory.equippedThemeId == themeId;
+
+  bool isBoardSkinEquipped(String boardSkinId) =>
+      _inventory.equippedBoardSkinId == boardSkinId;
+
+  ShopActionResult purchaseOrEquipTheme(String themeId) {
+    final theme = SkinCatalog.tryThemeById(themeId);
+    if (theme == null) {
+      return const ShopActionResult(
+        status: ShopActionStatus.notFound,
+        message: 'Theme not found.',
+      );
+    }
+
+    if (_inventory.equippedThemeId == theme.id) {
+      return ShopActionResult(
+        status: ShopActionStatus.alreadyEquipped,
+        message: '${theme.name} is already equipped.',
+      );
+    }
+
+    if (_inventory.ownedThemes.contains(theme.id)) {
+      _inventory = _inventory.copyWith(equippedThemeId: theme.id);
+      _persistInventory();
+      notifyListeners();
+      return ShopActionResult(
+        status: ShopActionStatus.equipped,
+        message: 'Equipped ${theme.name}.',
+      );
+    }
+
+    if (_inventory.coins < theme.price) {
+      final shortBy = theme.price - _inventory.coins;
+      return ShopActionResult(
+        status: ShopActionStatus.insufficientCoins,
+        message: 'Need $shortBy more coins.',
+        price: theme.price,
+      );
+    }
+
+    final nextOwned = Set<String>.from(_inventory.ownedThemes)..add(theme.id);
+    _inventory = _inventory.copyWith(
+      coins: _inventory.coins - theme.price,
+      ownedThemes: nextOwned,
+      equippedThemeId: theme.id,
+    );
+    _persistInventory();
+    notifyListeners();
+    return ShopActionResult(
+      status: ShopActionStatus.purchased,
+      message: 'Purchased and equipped ${theme.name}.',
+      price: theme.price,
+    );
+  }
+
+  ShopActionResult purchaseOrEquipBoardSkin(String boardSkinId) {
+    final boardSkin = SkinCatalog.tryBoardSkinById(boardSkinId);
+    if (boardSkin == null) {
+      return const ShopActionResult(
+        status: ShopActionStatus.notFound,
+        message: 'Board skin not found.',
+      );
+    }
+
+    if (_inventory.equippedBoardSkinId == boardSkin.id) {
+      return ShopActionResult(
+        status: ShopActionStatus.alreadyEquipped,
+        message: '${boardSkin.name} is already equipped.',
+      );
+    }
+
+    if (_inventory.ownedBoardSkins.contains(boardSkin.id)) {
+      _inventory = _inventory.copyWith(equippedBoardSkinId: boardSkin.id);
+      _persistInventory();
+      notifyListeners();
+      return ShopActionResult(
+        status: ShopActionStatus.equipped,
+        message: 'Equipped ${boardSkin.name}.',
+      );
+    }
+
+    if (_inventory.coins < boardSkin.price) {
+      final shortBy = boardSkin.price - _inventory.coins;
+      return ShopActionResult(
+        status: ShopActionStatus.insufficientCoins,
+        message: 'Need $shortBy more coins.',
+        price: boardSkin.price,
+      );
+    }
+
+    final nextOwned = Set<String>.from(_inventory.ownedBoardSkins)
+      ..add(boardSkin.id);
+    _inventory = _inventory.copyWith(
+      coins: _inventory.coins - boardSkin.price,
+      ownedBoardSkins: nextOwned,
+      equippedBoardSkinId: boardSkin.id,
+    );
+    _persistInventory();
+    notifyListeners();
+    return ShopActionResult(
+      status: ShopActionStatus.purchased,
+      message: 'Purchased and equipped ${boardSkin.name}.',
+      price: boardSkin.price,
+    );
   }
 
   void startQuickGame(PuzzleDifficulty difficulty) {
@@ -285,12 +450,51 @@ class GameController extends ChangeNotifier {
     _settings = GameSettings.fromStorage(_prefs.getString(_settingsKey));
     _dailyProgress =
         DailyProgress.fromStorage(_prefs.getString(_dailyProgressKey));
+    _inventory = _sanitizeInventory(
+      PlayerInventory.fromStorage(
+        _prefs.getString(_inventoryKey),
+        defaultThemeId: SkinCatalog.defaultThemeId,
+        defaultBoardSkinId: SkinCatalog.defaultBoardSkinId,
+        startingCoins: _startingCoins,
+      ),
+    );
     final rawSession = _prefs.getString(_activeSessionKey);
     if (rawSession != null && rawSession.isNotEmpty) {
       _session = GameSession.fromStorage(rawSession);
       _syncVisibleErrors();
       _startTimer();
     }
+  }
+
+  PlayerInventory _sanitizeInventory(PlayerInventory source) {
+    final validThemes = source.ownedThemes
+        .where((id) => SkinCatalog.tryThemeById(id) != null)
+        .toSet();
+    validThemes.add(SkinCatalog.defaultThemeId);
+
+    final validBoardSkins = source.ownedBoardSkins
+        .where((id) => SkinCatalog.tryBoardSkinById(id) != null)
+        .toSet();
+    validBoardSkins.add(SkinCatalog.defaultBoardSkinId);
+
+    final equippedThemeId = validThemes.contains(source.equippedThemeId)
+        ? source.equippedThemeId
+        : SkinCatalog.defaultThemeId;
+    final equippedBoardSkinId =
+        validBoardSkins.contains(source.equippedBoardSkinId)
+            ? source.equippedBoardSkinId
+            : SkinCatalog.defaultBoardSkinId;
+
+    validThemes.add(equippedThemeId);
+    validBoardSkins.add(equippedBoardSkinId);
+
+    return source.copyWith(
+      coins: source.coins < 0 ? 0 : source.coins,
+      ownedThemes: validThemes,
+      equippedThemeId: equippedThemeId,
+      ownedBoardSkins: validBoardSkins,
+      equippedBoardSkinId: equippedBoardSkinId,
+    );
   }
 
   void _startSession(
@@ -477,13 +681,27 @@ class GameController extends ChangeNotifier {
     if (current == null) return;
     _timer?.cancel();
 
+    var earnedDailyReward = false;
     if (current.isDaily && current.challengeDateKey != null) {
       final challengeDate = DateTime.parse(current.challengeDateKey!);
-      _dailyProgress = _dailyProgress.registerCompletion(
-        current.challengeDateKey!,
-        _dateKey(challengeDate.subtract(const Duration(days: 1))),
-      );
-      _persistDailyProgress();
+      earnedDailyReward =
+          !_dailyProgress.isCompleted(current.challengeDateKey!);
+      if (earnedDailyReward) {
+        _dailyProgress = _dailyProgress.registerCompletion(
+          current.challengeDateKey!,
+          _dateKey(challengeDate.subtract(const Duration(days: 1))),
+        );
+        _persistDailyProgress();
+      }
+    }
+
+    final reward = _calculateReward(
+      current,
+      earnedDailyReward: earnedDailyReward,
+    );
+    if (reward.total > 0) {
+      _inventory = _inventory.copyWith(coins: _inventory.coins + reward.total);
+      _persistInventory();
     }
 
     _lastResult = GameResult(
@@ -494,7 +712,17 @@ class GameController extends ChangeNotifier {
       kind: current.kind,
       challengeDateKey: current.challengeDateKey,
       updatedStreak: _dailyProgress.streak,
+      baseCoins: reward.base,
+      streakBonusCoins: reward.streakBonus,
+      coinsEarned: reward.total,
+      totalCoins: _inventory.coins,
     );
+    if (reward.total > 0) {
+      _pushMessage('+${reward.total} coins earned.');
+    } else if (current.isDaily && !earnedDailyReward) {
+      _pushMessage('Daily reward already claimed for today.');
+    }
+
     _session = null;
     _undoStack.clear();
     _redoStack.clear();
@@ -534,6 +762,10 @@ class GameController extends ChangeNotifier {
     _prefs.setString(_dailyProgressKey, _dailyProgress.toStorage());
   }
 
+  void _persistInventory() {
+    _prefs.setString(_inventoryKey, _inventory.toStorage());
+  }
+
   void _persistSession() {
     final current = _session;
     if (current == null) {
@@ -549,4 +781,37 @@ class GameController extends ChangeNotifier {
         '${normalized.month.toString().padLeft(2, '0')}-'
         '${normalized.day.toString().padLeft(2, '0')}';
   }
+
+  _CoinReward _calculateReward(
+    GameSession session, {
+    required bool earnedDailyReward,
+  }) {
+    if (session.kind == GameKind.regular) {
+      final base = session.puzzle.difficulty == PuzzleDifficulty.medium
+          ? _quickMediumCoins
+          : _quickEasyCoins;
+      return _CoinReward(base: base, streakBonus: 0);
+    }
+
+    if (!earnedDailyReward) {
+      return const _CoinReward(base: 0, streakBonus: 0);
+    }
+
+    final bonus = (_dailyProgress.streak * _streakBonusPerStep)
+        .clamp(0, _streakBonusCap)
+        .toInt();
+    return _CoinReward(base: _dailyBaseCoins, streakBonus: bonus);
+  }
+}
+
+class _CoinReward {
+  const _CoinReward({
+    required this.base,
+    required this.streakBonus,
+  });
+
+  final int base;
+  final int streakBonus;
+
+  int get total => base + streakBonus;
 }

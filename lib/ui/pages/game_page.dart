@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../controllers/game_controller.dart';
 import '../../models/app_enums.dart';
+import '../theme/game_theme.dart';
 import '../widgets/board_widget.dart';
 import '../widgets/game_ui_components.dart';
 import '../widgets/number_pad.dart';
@@ -26,6 +27,7 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     return Consumer<GameController>(
       builder: (context, controller, _) {
+        final palette = GameTheme.ui(context);
         final session = controller.session;
         final result = controller.lastResult;
 
@@ -86,18 +88,18 @@ class _GamePageState extends State<GamePage> {
                   session.kind == GameKind.daily
                       ? 'Daily Challenge'
                       : 'Quick Play',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF1B3858),
+                    color: palette.textPrimary,
                     letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 1),
                 Text(
                   '${session.puzzle.difficulty.label} • ${session.inputMode.label} mode',
-                  style: const TextStyle(
-                    color: Color(0xFF617A95),
+                  style: TextStyle(
+                    color: palette.textMuted,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                   ),
@@ -151,28 +153,32 @@ class _GameBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return IgnorePointer(
       child: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF4F9FF),
-              Color(0xFFF5FCF7),
-              Color(0xFFFFFBF2),
+              palette.gameBackgroundTop,
+              palette.gameBackgroundMid,
+              palette.gameBackgroundBottom,
             ],
           ),
         ),
         child: Stack(
           fit: StackFit.expand,
-          children: const [
+          children: [
             Positioned(
               top: -120,
               right: -120,
               child: _GlowBlob(
                 size: 320,
-                colors: [Color(0x55B8DEFF), Color(0x00B8DEFF)],
+                colors: [
+                  palette.quickAccent.withValues(alpha: 0.32),
+                  palette.quickAccent.withValues(alpha: 0),
+                ],
               ),
             ),
             Positioned(
@@ -180,7 +186,10 @@ class _GameBackdrop extends StatelessWidget {
               left: -90,
               child: _GlowBlob(
                 size: 260,
-                colors: [Color(0x4DD1F4DA), Color(0x00D1F4DA)],
+                colors: [
+                  palette.dailyAccent.withValues(alpha: 0.28),
+                  palette.dailyAccent.withValues(alpha: 0),
+                ],
               ),
             ),
             Positioned(
@@ -188,7 +197,10 @@ class _GameBackdrop extends StatelessWidget {
               right: -40,
               child: _GlowBlob(
                 size: 300,
-                colors: [Color(0x4DFFE3B5), Color(0x00FFE3B5)],
+                colors: [
+                  palette.successAccent.withValues(alpha: 0.24),
+                  palette.successAccent.withValues(alpha: 0),
+                ],
               ),
             ),
           ],
@@ -464,6 +476,7 @@ class _HeaderStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<GameController>();
+    final palette = GameTheme.ui(context);
     final session = controller.session!;
 
     return Row(
@@ -473,7 +486,7 @@ class _HeaderStats extends StatelessWidget {
             label: 'Time',
             value: _formatSeconds(session.elapsedSeconds),
             icon: Icons.timer_rounded,
-            tint: const Color(0xFF1376D8),
+            tint: palette.quickAccent,
             iconSize: iconSize,
             labelFontSize: labelFontSize,
             valueFontSize: valueFontSize,
@@ -487,7 +500,7 @@ class _HeaderStats extends StatelessWidget {
             label: 'Mistakes',
             value: '${session.mistakes}',
             icon: Icons.error_outline_rounded,
-            tint: const Color(0xFFD24A4A),
+            tint: palette.dangerAccent,
             iconSize: iconSize,
             labelFontSize: labelFontSize,
             valueFontSize: valueFontSize,
@@ -501,7 +514,7 @@ class _HeaderStats extends StatelessWidget {
             label: 'Streak',
             value: '${controller.dailyProgress.streak}',
             icon: Icons.local_fire_department_rounded,
-            tint: const Color(0xFFE58C2F),
+            tint: palette.hintAccent,
             iconSize: iconSize,
             labelFontSize: labelFontSize,
             valueFontSize: valueFontSize,
@@ -525,13 +538,14 @@ void _openSettings(BuildContext context, GameController controller) {
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFFF8FCFF),
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
+          final palette = GameTheme.ui(context);
           final settings = context.watch<GameController>().settings;
           return Padding(
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 28),
@@ -539,12 +553,12 @@ void _openSettings(BuildContext context, GameController controller) {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Settings',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF1B3858),
+                    color: palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -564,11 +578,11 @@ void _openSettings(BuildContext context, GameController controller) {
                   onChanged: controller.updateHaptic,
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   'Error Mode',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF2B4A6F),
+                    color: palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -590,7 +604,7 @@ void _openSettings(BuildContext context, GameController controller) {
                 Text(
                   settings.errorMode.description,
                   style: TextStyle(
-                    color: const Color(0xFF516B85).withValues(alpha: 0.9),
+                    color: palette.textMuted.withValues(alpha: 0.9),
                     height: 1.45,
                   ),
                 ),

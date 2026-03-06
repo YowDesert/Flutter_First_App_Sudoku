@@ -3,12 +3,14 @@ import 'package:provider/provider.dart';
 
 import '../../controllers/game_controller.dart';
 import '../../models/app_enums.dart';
+import '../theme/game_theme.dart';
 
 class ResultPage extends StatelessWidget {
   const ResultPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     final result = context.read<GameController>().lastResult;
     if (result == null) {
       return Scaffold(
@@ -24,14 +26,14 @@ class ResultPage extends StatelessWidget {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFEAF7F4),
-              Color(0xFFF7F3E8),
-              Color(0xFFF9FBFD),
+              palette.gameBackgroundTop,
+              palette.gameBackgroundMid,
+              palette.gameBackgroundBottom,
             ],
           ),
         ),
@@ -46,22 +48,17 @@ class ResultPage extends StatelessWidget {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(28),
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF0F766E),
-                        Color(0xFF115E59),
-                      ],
-                    ),
+                    gradient: palette.primaryButtonGradient,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         result.isDaily ? 'Daily Cleared' : 'Board Cleared',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                          color: palette.buttonText,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -69,8 +66,8 @@ class ResultPage extends StatelessWidget {
                         result.isDaily
                             ? 'Streak is now ${result.updatedStreak}.'
                             : 'Clean finish. Ready for another board.',
-                        style: const TextStyle(
-                          color: Colors.white70,
+                        style: TextStyle(
+                          color: palette.buttonText.withValues(alpha: 0.78),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -78,10 +75,20 @@ class ResultPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                _StatRow(label: 'Time', value: _formatSeconds(result.elapsedSeconds)),
+                _StatRow(
+                    label: 'Time',
+                    value: _formatSeconds(result.elapsedSeconds)),
                 _StatRow(label: 'Mistakes', value: '${result.mistakes}'),
                 _StatRow(label: 'Hints', value: '${result.hintsUsed}'),
                 _StatRow(label: 'Difficulty', value: result.difficulty.label),
+                _StatRow(
+                    label: 'Coins Earned', value: '+${result.coinsEarned}'),
+                _StatRow(label: 'Total Coins', value: '${result.totalCoins}'),
+                if (result.streakBonusCoins > 0)
+                  _StatRow(
+                    label: 'Streak Bonus',
+                    value: '+${result.streakBonusCoins}',
+                  ),
                 if (result.isDaily)
                   _StatRow(
                     label: 'Challenge Date',
@@ -91,11 +98,11 @@ class ResultPage extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () =>
-                        Navigator.of(context).popUntil((route) => route.isFirst),
+                    onPressed: () => Navigator.of(context)
+                        .popUntil((route) => route.isFirst),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xFF0F766E),
+                      backgroundColor: palette.dailyAccent,
                     ),
                     child: const Text('Back To Home'),
                   ),
@@ -126,29 +133,31 @@ class _StatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFDDE6E6)),
+        border: Border.all(color: palette.panelStroke.withValues(alpha: 0.8)),
       ),
       child: Row(
         children: [
           Text(
             label,
             style: TextStyle(
-              color: Colors.black.withValues(alpha: 0.58),
+              color: palette.textMuted.withValues(alpha: 0.9),
               fontWeight: FontWeight.w700,
             ),
           ),
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
+              color: palette.textPrimary,
             ),
           ),
         ],

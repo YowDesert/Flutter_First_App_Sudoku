@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../controllers/game_controller.dart';
 import '../../models/app_enums.dart';
 import '../../models/sudoku_puzzle.dart';
+import '../theme/game_theme.dart';
 
 class BoardWidget extends StatelessWidget {
   const BoardWidget({
@@ -17,6 +18,7 @@ class BoardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final boardPalette = GameTheme.board(context);
     final board =
         context.select<GameController, _BoardRenderData?>((controller) {
       final session = controller.session;
@@ -63,15 +65,18 @@ class BoardWidget extends StatelessWidget {
             height: boardSide,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(30),
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xE6FFFFFF), Color(0xB8FFFFFF)],
+                colors: [
+                  boardPalette.panelGradientTop,
+                  boardPalette.panelGradientBottom,
+                ],
               ),
-              border: Border.all(color: const Color(0xCCFFFFFF), width: 1.5),
-              boxShadow: const [
+              border: Border.all(color: boardPalette.panelBorder, width: 1.5),
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x2677A9D2),
+                  color: boardPalette.panelShadow,
                   blurRadius: 28,
                   offset: Offset(0, 14),
                 ),
@@ -111,6 +116,7 @@ class BoardWidget extends StatelessWidget {
                                   !isSelected;
 
                               final background = _resolveCellBackground(
+                                palette: boardPalette,
                                 row: row,
                                 col: col,
                                 selected: isSelected,
@@ -145,7 +151,7 @@ class BoardWidget extends StatelessWidget {
                                       onTap: () => context
                                           .read<GameController>()
                                           .selectCell(row, col),
-                                      splashColor: const Color(0x22368BE3),
+                                      splashColor: boardPalette.tapSplash,
                                       highlightColor: Colors.transparent,
                                       child: AnimatedContainer(
                                         duration:
@@ -188,13 +194,13 @@ class BoardWidget extends StatelessWidget {
                                                               ? FontWeight.w900
                                                               : FontWeight.w800,
                                                           color: isError
-                                                              ? const Color(
-                                                                  0xFFD55252)
+                                                              ? boardPalette
+                                                                  .errorDigit
                                                               : isGiven
-                                                                  ? const Color(
-                                                                      0xFF203B5D)
-                                                                  : const Color(
-                                                                      0xFF2275E5),
+                                                                  ? boardPalette
+                                                                      .givenDigit
+                                                                  : boardPalette
+                                                                      .userDigit,
                                                         ),
                                                       )
                                                     : _NotesGrid(
@@ -224,8 +230,8 @@ class BoardWidget extends StatelessWidget {
                                                           BorderRadius.circular(
                                                               7),
                                                       border: Border.all(
-                                                        color: const Color(
-                                                            0xFF2A8DED),
+                                                        color: boardPalette
+                                                            .selectedBorder,
                                                         width: 2,
                                                       ),
                                                     ),
@@ -245,8 +251,14 @@ class BoardWidget extends StatelessWidget {
                         );
                       }),
                     ),
-                    const IgnorePointer(
-                        child: CustomPaint(painter: _GridPainter())),
+                    IgnorePointer(
+                      child: CustomPaint(
+                        painter: _GridPainter(
+                          thinColor: boardPalette.gridThin,
+                          thickColor: boardPalette.gridThick,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -264,6 +276,7 @@ class BoardWidget extends StatelessWidget {
   }
 
   Color _resolveCellBackground({
+    required BoardPalette palette,
     required int row,
     required int col,
     required bool selected,
@@ -272,38 +285,43 @@ class BoardWidget extends StatelessWidget {
     required bool sameValue,
     required bool isError,
   }) {
-    var color =
-        (row + col).isEven ? const Color(0xFFFDFEFF) : const Color(0xFFF7FAFF);
+    var color = (row + col).isEven ? palette.cellEven : palette.cellOdd;
 
     if (sameRowCol) {
-      color = Color.alphaBlend(const Color(0x217FB9F7), color);
+      color = Color.alphaBlend(palette.sameRowColOverlay, color);
     }
     if (sameBox) {
-      color = Color.alphaBlend(const Color(0x1C9BE4B8), color);
+      color = Color.alphaBlend(palette.sameBoxOverlay, color);
     }
     if (sameValue) {
-      color = Color.alphaBlend(const Color(0x33FFE08A), color);
+      color = Color.alphaBlend(palette.sameValueOverlay, color);
     }
     if (selected) {
-      color = const Color(0xFFD8EBFF);
+      color = palette.selectedCell;
     }
     if (isError) {
-      color = Color.alphaBlend(const Color(0x66FFBABA), color);
+      color = Color.alphaBlend(palette.errorOverlay, color);
     }
     return color;
   }
 }
 
 class _GridPainter extends CustomPainter {
-  const _GridPainter();
+  const _GridPainter({
+    required this.thinColor,
+    required this.thickColor,
+  });
+
+  final Color thinColor;
+  final Color thickColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final thinPaint = Paint()
-      ..color = const Color(0xFFCDDBEA)
+      ..color = thinColor
       ..strokeWidth = 0.8;
     final thickPaint = Paint()
-      ..color = const Color(0xFF8EA3BF)
+      ..color = thickColor
       ..strokeWidth = 1.9;
 
     final cell = size.width / 9;
@@ -318,7 +336,10 @@ class _GridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GridPainter oldDelegate) {
+    return oldDelegate.thinColor != thinColor ||
+        oldDelegate.thickColor != thickColor;
+  }
 }
 
 class _NotesGrid extends StatelessWidget {
@@ -337,8 +358,9 @@ class _NotesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final boardPalette = GameTheme.board(context);
     final noteColor =
-        active ? const Color(0xFF6586AA) : const Color(0xFF7D91A8);
+        active ? boardPalette.noteActive : boardPalette.noteInactive;
     return Padding(
       padding: EdgeInsets.all(padding),
       child: Column(

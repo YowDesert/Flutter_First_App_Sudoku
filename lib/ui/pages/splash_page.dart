@@ -147,6 +147,7 @@ class _SplashForeground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 320),
       child: Column(
@@ -175,7 +176,7 @@ class _SplashForeground extends StatelessWidget {
             child: Text(
               isStarting ? 'Loading...' : 'Tap to Start',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: GameTheme.textMuted,
+                    color: palette.textMuted,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.4,
                   ),
@@ -196,6 +197,7 @@ class _LogoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return AnimatedBuilder(
       animation: floatAnimation,
       builder: (context, child) {
@@ -227,11 +229,11 @@ class _LogoBadge extends StatelessWidget {
             ),
           ],
         ),
-        child: const Center(
+        child: Center(
           child: Icon(
             Icons.grid_view_rounded,
             size: 52,
-            color: GameTheme.dailyAccent,
+            color: palette.dailyAccent,
           ),
         ),
       ),
@@ -248,20 +250,21 @@ class _SplashBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
     return AnimatedBuilder(
       animation: floatAnimation,
       builder: (context, child) {
         final t = Curves.easeInOut.transform(floatAnimation.value);
         return DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               stops: [0.0, 0.58, 1.0],
               colors: [
-                GameTheme.backgroundTop,
-                GameTheme.backgroundMid,
-                GameTheme.backgroundBottom,
+                palette.homeBackgroundTop,
+                palette.homeBackgroundMid,
+                palette.homeBackgroundBottom,
               ],
             ),
           ),
@@ -270,33 +273,33 @@ class _SplashBackground extends StatelessWidget {
               Positioned(
                 top: -120 + (t * 14),
                 left: -70 + (t * 18),
-                child: const _BackdropOrb(
+                child: _BackdropOrb(
                   size: 320,
-                  color: Color(0x4F88F4D5),
+                  color: palette.dailyAccent.withValues(alpha: 0.28),
                 ),
               ),
               Positioned(
                 top: 130 - (t * 20),
                 right: -100 + (t * 16),
-                child: const _BackdropOrb(
+                child: _BackdropOrb(
                   size: 300,
-                  color: Color(0x469ACFFF),
+                  color: palette.quickAccent.withValues(alpha: 0.24),
                 ),
               ),
               Positioned(
                 bottom: -130 + (t * 18),
                 left: 10 - (t * 16),
-                child: const _BackdropOrb(
+                child: _BackdropOrb(
                   size: 300,
-                  color: Color(0x44FFE0AE),
+                  color: palette.successAccent.withValues(alpha: 0.22),
                 ),
               ),
               Positioned(
                 bottom: 120 + (t * 8),
                 right: 24 + (t * 10),
-                child: const _BackdropOrb(
+                child: _BackdropOrb(
                   size: 190,
-                  color: Color(0x3DA8FFD9),
+                  color: palette.dailyAccent.withValues(alpha: 0.2),
                 ),
               ),
             ],

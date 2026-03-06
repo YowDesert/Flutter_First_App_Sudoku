@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../controllers/game_controller.dart';
 import '../../models/app_enums.dart';
+import '../theme/game_theme.dart';
 
 class NumberPad extends StatelessWidget {
   const NumberPad({
@@ -26,6 +27,7 @@ class NumberPad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<GameController>();
+    final palette = GameTheme.ui(context);
     final session = controller.session;
     if (session == null) {
       return const SizedBox.shrink();
@@ -84,6 +86,7 @@ class NumberPad extends StatelessWidget {
             height: buttonHeight,
             child: KeypadButton(
               label: '$value',
+              palette: palette,
               radius: buttonRadius,
               fontSize: resolvedFont,
               selected: selected,
@@ -101,6 +104,7 @@ class NumberPad extends StatelessWidget {
             height: buttonHeight,
             child: KeypadButton(
               icon: Icons.backspace_rounded,
+              palette: palette,
               radius: buttonRadius,
               fontSize: resolvedFont * 0.88,
               enabled: canClear,
@@ -136,14 +140,14 @@ class NumberPad extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   Colors.white.withValues(alpha: 0.86),
-                  Colors.white.withValues(alpha: 0.66),
+                  palette.quickAccent.withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(borderRadius),
-              border: Border.all(color: const Color(0xB6FFFFFF)),
-              boxShadow: const [
+              border: Border.all(color: palette.panelStroke),
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x1C76A3D5),
+                  color: palette.quickAccent.withValues(alpha: 0.16),
                   blurRadius: 20,
                   offset: Offset(0, 8),
                 ),
@@ -187,6 +191,7 @@ class KeypadButton extends StatefulWidget {
     super.key,
     this.label,
     this.icon,
+    required this.palette,
     required this.radius,
     required this.fontSize,
     required this.onTap,
@@ -197,6 +202,7 @@ class KeypadButton extends StatefulWidget {
 
   final String? label;
   final IconData? icon;
+  final GameUiPalette palette;
   final double radius;
   final double fontSize;
   final VoidCallback onTap;
@@ -213,6 +219,17 @@ class _KeypadButtonState extends State<KeypadButton> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = widget.palette;
+    final selectedStart = Color.alphaBlend(
+      Colors.white.withValues(alpha: 0.23),
+      palette.keypadAccent,
+    );
+    final utilityStart = Color.alphaBlend(
+      Colors.white.withValues(alpha: 0.2),
+      palette.utilityAccent,
+    );
+    final defaultTail = palette.quickAccent.withValues(alpha: 0.12);
+
     final background = !widget.enabled
         ? const LinearGradient(
             begin: Alignment.topLeft,
@@ -220,21 +237,21 @@ class _KeypadButtonState extends State<KeypadButton> {
             colors: [Color(0xFFF2F5F9), Color(0xFFE8EDF2)],
           )
         : widget.selected
-            ? const LinearGradient(
+            ? LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF74B1FF), Color(0xFF3787ED)],
+                colors: [selectedStart, palette.keypadAccent],
               )
             : widget.utility
-                ? const LinearGradient(
+                ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFFFFD9BF), Color(0xFFF6B98D)],
+                    colors: [utilityStart, palette.utilityAccent],
                   )
-                : const LinearGradient(
+                : LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFFFFFFFF), Color(0xFFF2F7FF)],
+                    colors: [const Color(0xFFFFFFFF), defaultTail],
                   );
 
     final foreground = !widget.enabled
@@ -242,24 +259,24 @@ class _KeypadButtonState extends State<KeypadButton> {
         : widget.selected
             ? Colors.white
             : widget.utility
-                ? const Color(0xFF9A4A22)
-                : const Color(0xFF2D4E76);
+                ? palette.textPrimary
+                : palette.textPrimary;
 
     final borderColor = !widget.enabled
         ? const Color(0xFFDCE4ED)
         : widget.selected
-            ? const Color(0x903787ED)
+            ? palette.keypadAccent.withValues(alpha: 0.56)
             : widget.utility
-                ? const Color(0x99EDB386)
+                ? palette.utilityAccent.withValues(alpha: 0.58)
                 : const Color(0xFFE1EAF5);
 
     final shadowColor = !widget.enabled
         ? const Color(0x0F657D97)
         : widget.selected
-            ? const Color(0x343786ED)
+            ? palette.keypadAccent.withValues(alpha: 0.24)
             : widget.utility
-                ? const Color(0x26E79C6A)
-                : const Color(0x1A6A8DB2);
+                ? palette.utilityAccent.withValues(alpha: 0.22)
+                : palette.quickAccent.withValues(alpha: 0.17);
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 120),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -147,6 +149,47 @@ void main() {
 
       expect(restored.session, isNotNull);
       expect(restored.session!.values[index], _correctDigit(controller, index));
+    });
+
+    test('quick clear grants coins and writes reward to result', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final controller = GameController(prefs);
+
+      final initialCoins = controller.coins;
+      controller.startQuickGame(PuzzleDifficulty.easy);
+      while (controller.canUseHint) {
+        controller.useHint();
+      }
+
+      expect(controller.lastResult, isNotNull);
+      expect(controller.lastResult!.coinsEarned, greaterThan(0));
+      expect(controller.coins, greaterThan(initialCoins));
+    });
+
+    test('shop purchase and equip are persisted', () async {
+      SharedPreferences.setMockInitialValues({
+        'inventory_v1': jsonEncode({
+          'coins': 500,
+          'ownedThemes': ['classic_light'],
+          'equippedThemeId': 'classic_light',
+          'ownedBoardSkins': ['crystal_grid'],
+          'equippedBoardSkinId': 'crystal_grid',
+        }),
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final controller = GameController(prefs);
+
+      final action = controller.purchaseOrEquipTheme('mint_fresh');
+
+      expect(action.status, ShopActionStatus.purchased);
+      expect(controller.equippedThemeId, 'mint_fresh');
+      expect(controller.ownsTheme('mint_fresh'), isTrue);
+
+      final restoredPrefs = await SharedPreferences.getInstance();
+      final restored = GameController(restoredPrefs);
+      expect(restored.equippedThemeId, 'mint_fresh');
+      expect(restored.ownsTheme('mint_fresh'), isTrue);
     });
   });
 }
