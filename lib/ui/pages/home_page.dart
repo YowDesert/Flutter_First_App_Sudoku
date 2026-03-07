@@ -8,8 +8,10 @@ import '../../controllers/game_controller.dart';
 import '../../models/app_enums.dart';
 import '../../models/game_session.dart';
 import '../theme/game_theme.dart';
+import 'daily_calendar_page.dart';
 import 'game_page.dart';
 import 'shop_page.dart';
+import 'stats_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -109,6 +111,15 @@ class _HomePageState extends State<HomePage>
                               _openGame(context);
                             },
                           ),
+                          const SizedBox(height: 16),
+                          _ProgressHubCard(
+                            totalGames: controller.playerStats.totalGames,
+                            completedDays:
+                                controller.dailyProgress.completedDates.length,
+                            hapticEnabled: controller.settings.hapticOn,
+                            onOpenStats: () => _openStats(context),
+                            onOpenCalendar: () => _openDailyCalendar(context),
+                          ),
                           if (hasActiveSession && session != null) ...[
                             const SizedBox(height: 16),
                             _ContinueLastGameCard(
@@ -142,6 +153,18 @@ class _HomePageState extends State<HomePage>
   void _openShop(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const ShopPage()),
+    );
+  }
+
+  void _openStats(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const StatsPage()),
+    );
+  }
+
+  void _openDailyCalendar(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const DailyCalendarPage()),
     );
   }
 
@@ -463,6 +486,105 @@ class _QuickRunCard extends StatelessWidget {
             onPressed: onStart,
             gradient: palette.secondaryButtonGradient,
             expanded: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressHubCard extends StatelessWidget {
+  const _ProgressHubCard({
+    required this.totalGames,
+    required this.completedDays,
+    required this.hapticEnabled,
+    required this.onOpenStats,
+    required this.onOpenCalendar,
+  });
+
+  final int totalGames;
+  final int completedDays;
+  final bool hapticEnabled;
+  final VoidCallback onOpenStats;
+  final VoidCallback onOpenCalendar;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
+    return _GlassPanel(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+      borderRadius: BorderRadius.circular(24),
+      colors: const [
+        Color(0xEEFFFFFF),
+        Color(0xDCF8FFFC),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: palette.successAccent.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.insights_rounded,
+                  color: palette.successAccent,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Progress Hub', style: GameTheme.modeTitle(context)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Track your stats and daily completion calendar.',
+                      style: GameTheme.modeBody(context),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _InfoPill(label: 'Games', value: '$totalGames'),
+              _InfoPill(label: 'Daily Clears', value: '$completedDays'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _GameActionButton(
+                  label: 'Stats',
+                  icon: Icons.query_stats_rounded,
+                  hapticEnabled: hapticEnabled,
+                  onPressed: onOpenStats,
+                  expanded: true,
+                  gradient: palette.secondaryButtonGradient,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _GameActionButton(
+                  label: 'Calendar',
+                  icon: Icons.calendar_month_rounded,
+                  hapticEnabled: hapticEnabled,
+                  onPressed: onOpenCalendar,
+                  expanded: true,
+                  gradient: palette.primaryButtonGradient,
+                ),
+              ),
+            ],
           ),
         ],
       ),

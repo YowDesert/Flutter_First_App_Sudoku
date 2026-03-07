@@ -9,6 +9,7 @@ import '../models/app_enums.dart';
 import '../models/daily_progress.dart';
 import '../models/game_session.dart';
 import '../models/game_settings.dart';
+import '../models/player_stats.dart';
 import '../models/player_inventory.dart';
 import '../models/skin_catalog.dart';
 import '../models/sudoku_puzzle.dart';
@@ -56,12 +57,14 @@ class GameController extends ChangeNotifier {
   static const _dailyProgressKey = 'daily_progress_v2';
   static const _activeSessionKey = 'active_session_v2';
   static const _inventoryKey = 'inventory_v1';
+  static const _playerStatsKey = 'player_stats_v1';
 
   final SharedPreferences _prefs;
   final PuzzleRepository _repository = PuzzleRepository();
 
   GameSettings _settings = const GameSettings();
   DailyProgress _dailyProgress = DailyProgress();
+  PlayerStats _playerStats = const PlayerStats();
   PlayerInventory _inventory = PlayerInventory.initial(
     defaultThemeId: SkinCatalog.defaultThemeId,
     defaultBoardSkinId: SkinCatalog.defaultBoardSkinId,
@@ -95,6 +98,7 @@ class GameController extends ChangeNotifier {
   List<BoardSkinDefinition> get boardSkinCatalog => SkinCatalog.boardSkins;
   GameSession? get session => _session;
   GameResult? get lastResult => _lastResult;
+  PlayerStats get playerStats => _playerStats;
   Set<int> get visibleErrorIndexes => _visibleErrorIndexes;
   int? get recentErrorIndex => _recentErrorIndex;
   int get feedbackVersion => _feedbackVersion;
@@ -450,6 +454,7 @@ class GameController extends ChangeNotifier {
     _settings = GameSettings.fromStorage(_prefs.getString(_settingsKey));
     _dailyProgress =
         DailyProgress.fromStorage(_prefs.getString(_dailyProgressKey));
+    _playerStats = PlayerStats.fromStorage(_prefs.getString(_playerStatsKey));
     _inventory = _sanitizeInventory(
       PlayerInventory.fromStorage(
         _prefs.getString(_inventoryKey),
@@ -717,6 +722,12 @@ class GameController extends ChangeNotifier {
       coinsEarned: reward.total,
       totalCoins: _inventory.coins,
     );
+    _playerStats = _playerStats.recordSession(
+      current,
+      coinsEarned: reward.total,
+      playedDateKey: _dateKey(DateTime.now()),
+    );
+    _persistPlayerStats();
     if (reward.total > 0) {
       _pushMessage('+${reward.total} coins earned.');
     } else if (current.isDaily && !earnedDailyReward) {
@@ -764,6 +775,10 @@ class GameController extends ChangeNotifier {
 
   void _persistInventory() {
     _prefs.setString(_inventoryKey, _inventory.toStorage());
+  }
+
+  void _persistPlayerStats() {
+    _prefs.setString(_playerStatsKey, _playerStats.toStorage());
   }
 
   void _persistSession() {
